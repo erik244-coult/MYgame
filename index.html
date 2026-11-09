@@ -2,87 +2,62 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memory Cars - Jogo da Memória</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Cars - Jogo da Memória</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <main id="menu" class="screen menu-screen">
+    <div class="menu-content">
+      <div class="logo">🏎️</div>
+      <h1>MEMORY <span>CARS</span></h1>
+      <p class="subtitle">Teste sua memória no mundo dos carros!</p>
+      <div class="mode-box">
+        <h2>Escolha o modo de jogo</h2>
+        <button class="mode-button" onclick="startGame(1)">👤 Jogar sozinho</button>
+        <button class="mode-button" onclick="startGame(2)">👥 Dois jogadores</button>
+      </div>
+      <p class="footer">Encontre os 6 pares e complete o desafio!</p>
+    </div>
+  </main>
 
-    <!-- PÁGINA INICIAL -->
-    <main id="menu" class="screen menu-screen">
-        <div class="menu-content">
-            <div class="logo">🏎️</div>
-            <h1>MEMORY <span>CARS</span></h1>
-            <p class="subtitle">Teste sua memória no mundo dos carros!</p>
+  <main id="game" class="screen game-screen hidden">
+    <header class="game-header">
+      <h1>🏎️ MEMORY <span>CARS</span></h1>
+      <button class="back-button" onclick="backToMenu()">← Menu</button>
+    </header>
 
-            <div class="mode-box">
-                <h2>Escolha o modo de jogo</h2>
+    <section class="stats" aria-live="polite">
+      <div class="stat"><strong id="moves">0</strong><span>JOGADAS</span></div>
+      <div class="stat"><strong id="timer">00:00</strong><span>TEMPO</span></div>
+      <div class="stat"><strong id="pairs">0/6</strong><span>PARES ENCONTRADOS</span></div>
+      <div class="stat" id="turn-stat"><strong id="turn">1</strong><span>JOGADOR DA VEZ</span></div>
+    </section>
 
-                <button class="mode-button" onclick="startGame(1)">
-                    👤 Jogar sozinho
-                </button>
-
-                <button class="mode-button" onclick="startGame(2)">
-                    👥 Dois jogadores
-                </button>
-            </div>
-
-            <p class="footer">Encontre todos os pares e seja o campeão!</p>
-        </div>
-    </main>
-
-    <!-- PÁGINA DO JOGO -->
-    <main id="game" class="screen game-screen hidden">
-
-        <header class="game-header">
-            <h1>🏎️ MEMORY CARS</h1>
-            <button class="back-button" onclick="backToMenu()">
-                ← Menu
-            </button>
-        </header>
-
-        <section class="game-info">
-            <div class="player-info" id="player1">
-                <h3 id="player1-name">Jogador 1</h3>
-                <p>❤️ <span id="lives1">5</span> chances</p>
-                <p>🏆 <span id="score1">0</span> pares</p>
-            </div>
-
-            <div class="player-info hidden" id="player2">
-                <h3>Jogador 2</h3>
-                <p>❤️ <span id="lives2">5</span> chances</p>
-                <p>🏆 <span id="score2">0</span> pares</p>
-            </div>
-        </section>
-
-        <div class="game-status">
-            <h2 id="status">Encontre os pares de carros!</h2>
-            <p id="turn-info">Sua vez de jogar!</p>
-        </div>
-
-        <section id="board" class="board"></section>
-
-        <div class="game-footer">
-            <p>Cartas encontradas: <span id="found">0</span>/10</p>
-            <button class="restart-button" onclick="restartGame()">
-                🔄 Reiniciar jogo
-            </button>
-        </div>
-
-    </main>
-
-    <!-- MODAL DE RESULTADO -->
-    <div id="result-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="result-title">Fim de jogo!</h2>
-            <p id="result-message"></p>
-
-            <button onclick="restartGame()">🔄 Jogar novamente</button>
-            <button onclick="backToMenu()">🏠 Voltar ao menu</button>
-        </div>
+    <div class="game-status">
+      <h2 id="status">Encontre os pares de carros!</h2>
+      <p id="turn-info">Clique em uma carta para começar.</p>
     </div>
 
-    <script src="script.js"></script>
+    <section id="board" class="board" aria-label="Tabuleiro do jogo da memória"></section>
+
+    <div class="game-footer">
+      <p>Objetivo: encontrar os 6 pares de carros.</p>
+      <button class="restart-button" onclick="restartGame()">🔄 Reiniciar jogo</button>
+    </div>
+  </main>
+
+  <div id="result-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="modal-content">
+      <h2 id="result-title">🏆 Parabéns!</h2>
+      <p id="result-message">Você completou o jogo!</p>
+      <p id="result-stats"></p>
+      <button class="primary-button" onclick="restartGame()">🔄 Jogar novamente</button>
+      <button class="secondary-button" onclick="backToMenu()">🏠 Voltar ao menu</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>

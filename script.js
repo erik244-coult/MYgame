@@ -1,247 +1,302 @@
 
-const cars = [
-    "🚗", "🏎️", "🚕", "🚙", "🚓",
-    "🚑", "🚒", "🚐", "🚚", "🏍️"
-];
+// Tema escolhido: carros.
+// Cada símbolo aparece exatamente duas vezes.
+const carSymbols = ["🚗", "🏎️", "🚕", "🚙", "🚓", "🏍️"];
 
 let mode = 1;
 let currentPlayer = 0;
-let lives = [5, 5];
 let scores = [0, 0];
+let deck = [];
 let flippedCards = [];
 let matchedPairs = 0;
+let moves = 0;
+let elapsedSeconds = 0;
+let timerInterval = null;
+let timerStarted = false;
 let locked = false;
 let gameActive = false;
-let cards = [];
+
+const $ = (id) => document.getElementById(id);
 
 // Iniciar jogo
 function startGame(selectedMode) {
-    mode = selectedMode;
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-    document.getElementById("result-modal").classList.add("hidden");
+  mode = selectedMode;
 
-    document.getElementById("player2").classList.toggle(
-        "hidden", mode === 1
-    );
+  $("menu").classList.add("hidden");
+  $("game").classList.remove("hidden");
 
-    restartGame();
+  $("turn-stat").classList.toggle("hidden", mode === 1);
+
+  restartGame();
+}
+
+// Embaralhar cartas usando Fisher-Yates
+function shuffle(array) {
+  const result = [...array];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
 }
 
 // Reiniciar partida
 function restartGame() {
-    lives = [10, 10];
-    scores = [0, 0];
-    currentPlayer = 0;
-    flippedCards = [];
-    matchedPairs = 0;
-    locked = false;
-    gameActive = true;
+  stopTimer();
 
-    document.getElementById("result-modal").classList.add("hidden");
+  currentPlayer = 0;
+  scores = [0, 0];
+  flippedCards = [];
+  matchedPairs = 0;
+  moves = 0;
+  elapsedSeconds = 0;
+  timerStarted = false;
+  locked = false;
+  gameActive = true;
 
-    // Criar os pares
-    cards = [...cars, ...cars];
+  // Criar 12 cartas com 6 pares
+  deck = shuffle([...carSymbols, ...carSymbols]);
 
-    // Embaralhar cartas
-    cards.sort(() => Math.random() - 0.5);
+  $("result-modal").classList.add("hidden");
 
-    renderBoard();
-    updateInfo();
-    updateTurn();
+  $("status").textContent = "Encontre os pares de carros!";
 
-    document.getElementById("status").textContent =
-        "Encontre os pares de carros!";
+  $("turn-info").textContent = mode === 1
+    ? "Clique em uma carta para começar."
+    : "Vez do Jogador 1 — clique em uma carta.";
 
-    document.getElementById("found").textContent = "0";
+  updateStats();
+  renderBoard();
 }
 
 // Criar tabuleiro
 function renderBoard() {
-    const board = document.getElementById("board");
-    board.innerHTML = "";
+  const board = $("board");
 
-    cards.forEach((car, index) => {
-        const card = document.createElement("button");
+  board.innerHTML = "";
 
-        card.className = "card";
-        card.textContent = "❓";
-        card.dataset.index = index;
-        card.setAttribute("aria-label", "Carta fechada");
+  deck.forEach((symbol, index) => {
+    const card = document.createElement("button");
 
-        card.addEventListener("click", () => flipCard(card, index));
+    card.type = "button";
+    card.className = "card";
+    card.dataset.index = index;
 
-        board.appendChild(card);
+    card.setAttribute("aria-label", "Carta fechada");
+
+    card.innerHTML = '<span class="symbol"></span>';
+
+    card.addEventListener("click", () => {
+      flipCard(card, index);
     });
+
+    board.appendChild(card);
+  });
+}
+
+// Iniciar cronômetro no primeiro clique
+function startTimer() {
+  if (timerStarted) return;
+
+  timerStarted = true;
+
+  timerInterval = setInterval(() => {
+    elapsedSeconds++;
+
+    $("timer").textContent = formatTime(elapsedSeconds);
+  }, 1000);
+}
+
+// Parar cronômetro
+function stopTimer() {
+  if (timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+// Formatar tempo
+function formatTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return String(minutes).padStart(2, "0") + ":" +
+         String(seconds).padStart(2, "0");
 }
 
 // Virar carta
 function flipCard(card, index) {
-    if (!gameActive || locked) return;
-    if (card.classList.contains("flipped")) return;
-    if (card.classList.contains("matched")) return;
 
-    card.textContent = cards[index];
-    card.classList.add("flipped");
-    card.setAttribute("aria-label", "Carta " + cards[index]);
+  // Impedir jogadas inválidas
+  if (!gameActive || locked) return;
 
-    flippedCards.push({
-        element: card,
-        value: cards[index]
-    });
+  if (
+    card.classList.contains("flipped") ||
+    card.classList.contains("matched")
+  ) {
+    return;
+  }
 
-    // Verificar duas cartas
-    if (flippedCards.length === 2) {
-        locked = true;
+  startTimer();
 
-        const first = flippedCards[0];
-        const second = flippedCards[1];
+  card.classList.add("flipped");
 
-        if (first.value === second.value) {
-            // Acertou!
-            setTimeout(() => {
-                first.element.classList.add("matched");
-                second.element.classList.add("matched");
+  card.querySelector(".symbol").textContent = deck[index];
 
-                first.element.disabled = true;
-                second.element.disabled = true;
+  card.setAttribute(
+    "aria-label",
+    "Carta revelada: " + deck[index]
+  );
 
-                matchedPairs++;
-                scores[currentPlayer]++;
+  flippedCards.push({
+    element: card,
+    value: deck[index]
+  });
 
-                document.getElementById("found").textContent =
-                    matchedPairs;
+  // Verificar duas cartas
+  if (flippedCards.length === 2) {
 
-                updateInfo();
+    moves++;
 
-                flippedCards = [];
-                locked = false;
+    updateStats();
 
-                document.getElementById("status").textContent =
-                    "🎉 Par encontrado! Muito bem!";
+    locked = true;
 
-                // Verificar vitória
-                if (matchedPairs === 10) {
-                    finishGame("victory");
-                }
+    const [first, second] = flippedCards;
 
-            }, 500);
+    // Acertou o par
+    if (first.value === second.value) {
 
+      window.setTimeout(() => {
+
+        first.element.classList.add("matched");
+        second.element.classList.add("matched");
+
+        first.element.disabled = true;
+        second.element.disabled = true;
+
+        matchedPairs++;
+
+        scores[currentPlayer]++;
+
+        flippedCards = [];
+
+        locked = false;
+
+        updateStats();
+
+        $("status").textContent =
+          "🎉 Par encontrado! Muito bem!";
+
+        // Verificar vitória
+        if (matchedPairs === 6) {
+          finishGame();
         } else {
-            // Errou: perder uma chance
-            setTimeout(() => {
-                first.element.textContent = "❓";
-                second.element.textContent = "❓";
-
-                first.element.classList.remove("flipped");
-                second.element.classList.remove("flipped");
-
-                first.element.setAttribute("aria-label", "Carta fechada");
-                second.element.setAttribute("aria-label", "Carta fechada");
-
-                lives[currentPlayer]--;
-
-                updateInfo();
-
-                flippedCards = [];
-                locked = false;
-
-                // Verificar se perdeu todas as chances
-                if (lives[currentPlayer] <= 0) {
-                    finishGame("defeat");
-                    return;
-                }
-
-                // Alternar jogador no modo de dois jogadores
-                if (mode === 2) {
-                    currentPlayer = currentPlayer === 0 ? 1 : 0;
-                    updateTurn();
-                }
-
-                document.getElementById("status").textContent =
-                    "❌ Você errou! Perdeu uma chance.";
-
-            }, 1000);
+          updateTurnInfo();
         }
+
+      }, 350);
+
+    } else {
+
+      $("status").textContent =
+        "Não são iguais. Tente novamente!";
+
+      // Fechar cartas diferentes após 1 segundo
+      window.setTimeout(() => {
+
+        [first, second].forEach(({ element }) => {
+
+          element.classList.remove("flipped");
+
+          element.querySelector(".symbol").textContent = "";
+
+          element.setAttribute(
+            "aria-label",
+            "Carta fechada"
+          );
+        });
+
+        flippedCards = [];
+
+        locked = false;
+
+        // Alternar jogador no modo de dois jogadores
+        if (mode === 2) {
+          currentPlayer = currentPlayer === 0 ? 1 : 0;
+        }
+
+        $("status").textContent =
+          "Continue procurando os pares!";
+
+        updateTurnInfo();
+        updateStats();
+
+      }, 1000);
     }
+  }
 }
 
-// Atualizar placar
-function updateInfo() {
-    document.getElementById("lives1").textContent = lives[0];
-    document.getElementById("score1").textContent = scores[0];
+// Atualizar informações
+function updateStats() {
+  $("moves").textContent = moves;
 
-    document.getElementById("lives2").textContent = lives[1];
-    document.getElementById("score2").textContent = scores[1];
+  $("timer").textContent = formatTime(elapsedSeconds);
+
+  $("pairs").textContent = matchedPairs + "/6";
+
+  $("turn").textContent = currentPlayer + 1;
 }
 
 // Atualizar jogador da vez
-function updateTurn() {
-    const player1 = document.getElementById("player1");
-    const player2 = document.getElementById("player2");
-
-    player1.classList.toggle("active", currentPlayer === 0);
-    player2.classList.toggle(
-        "active",
-        mode === 2 && currentPlayer === 1
-    );
-
-    if (mode === 1) {
-        document.getElementById("turn-info").textContent =
-            "Você está jogando sozinho!";
-    } else {
-        document.getElementById("turn-info").textContent =
-            "Vez do Jogador " + (currentPlayer + 1);
-    }
+function updateTurnInfo() {
+  $("turn-info").textContent = mode === 1
+    ? "Continue jogando. Boa sorte!"
+    : "Vez do Jogador " + (currentPlayer + 1);
 }
 
-// Finalizar partida
-function finishGame(result) {
-    gameActive = false;
-    locked = true;
+// Finalizar jogo
+function finishGame() {
+  gameActive = false;
+  locked = true;
 
-    const modal = document.getElementById("result-modal");
-    const title = document.getElementById("result-title");
-    const message = document.getElementById("result-message");
+  stopTimer();
 
-    if (result === "victory") {
-        title.textContent = "🏆 Parabéns!";
+  $("status").textContent =
+    "🏆 Todos os pares foram encontrados!";
 
-        if (mode === 1) {
-            message.textContent =
-                "Você encontrou todos os pares e venceu o jogo!";
-        } else {
-            message.textContent =
-                "Jogador " + (scores[0] > scores[1] ? "1" :
-                scores[1] > scores[0] ? "2" : "1 e Jogador 2") +
-                (scores[0] === scores[1] ? " empataram!" : " venceu!");
-        }
+  $("turn-info").textContent = "Jogo concluído!";
 
-    } else {
-        title.textContent = "💔 Fim de jogo!";
+  $("result-title").textContent = "🏆 Parabéns!";
 
-        if (mode === 1) {
-            message.textContent =
-                "Suas 5 chances acabaram! Tente novamente.";
-        } else {
-            const winner = currentPlayer === 0 ? 2 : 1;
+  $("result-message").textContent = mode === 1
+    ? "Você completou o jogo da memória!"
+    : "Os 6 pares foram encontrados! " +
+      (scores[0] > scores[1]
+        ? "Jogador 1 venceu!"
+        : scores[1] > scores[0]
+          ? "Jogador 2 venceu!"
+          : "A partida terminou empatada!");
 
-            message.textContent =
-                "Jogador " + winner +
-                " venceu! O Jogador " + (currentPlayer + 1) +
-                " perdeu todas as chances.";
-        }
-    }
+  $("result-stats").textContent =
+    "Jogadas: " + moves +
+    " | Tempo: " + formatTime(elapsedSeconds);
 
-    modal.classList.remove("hidden");
+  $("result-modal").classList.remove("hidden");
 }
 
 // Voltar ao menu
 function backToMenu() {
-    gameActive = false;
-    locked = true;
+  gameActive = false;
 
-    document.getElementById("game").classList.add("hidden");
-    document.getElementById("menu").classList.remove("hidden");
-    document.getElementById("result-modal").classList.add("hidden");
+  stopTimer();
+
+  $("game").classList.add("hidden");
+
+  $("menu").classList.remove("hidden");
+
+  $("result-modal").classList.add("hidden");
 }
